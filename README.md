@@ -1,7 +1,7 @@
 # deploy AWS Lightsail container
 
-AWS Lightsail containerをterraformとgithub actionsで作成する。  
-構成を作成後、aws cliとgithub actionsで中身を作成する
+AWS Lightsail containerをterraformとgithub actions(execute_terraform)で作成する。  
+Lightsail containerを作成後、aws cliとgithub actions(deploy_lightsail_container)で中身を作成する
 
 ## Overview
 
