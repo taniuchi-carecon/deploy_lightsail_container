@@ -1,0 +1,90 @@
+name: deploy_lightsail_container
+
+# 手動実行(workflow_dispatch)で引数を取る形にしている。自動実行にするならsecretsに情報を設定する。
+on:
+  workflow_dispatch:
+    inputs:
+      AWS_ACCOUNT_ID:
+        type: string
+        required: true
+      AWS_ACCOUNT_ROLE:
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-1
+  CONTAINER_NAME: container-service-1
+  # container.jsonのimage、docker-composeのimageと同じにする
+  APP_IMAGE: service-name-app
+  WEB_IMAGE: service-name-web
+  DB_IMAGE: service-name-db
+
+jobs:
+  deploy_lightsail_container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: branch checkout
+        uses: actions/checkout@v2
+
+      - name: AWS OIDC certification
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.AWS_ACCOUNT_ID }}:role/${{ inputs.AWS_ACCOUNT_ROLE }}
+          aws-region: ap-northeast-1
+
+      - name: Install Utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip
+
+      - name: Install AWS Client
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install || true
+          aws --version
+          curl "https://s3.us-west-2.amazonaws.com/lightsailctl/latest/linux-amd64/lightsailctl" -o "lightsailctl"
+          sudo mv "lightsailctl" "/usr/local/bin/lightsailctl"
+          sudo chmod +x /usr/local/bin/lightsailctl
+
+      - name: Build All Docker Image
+        working-directory: ./docker/
+        run: docker-compose build
+
+      - name: Push APP Docker Image
+        working-directory: ./docker/
+        run: |
+          aws lightsail push-container-image \
+            --region ${{ env.AWS_REGION }} \
+            --service-name ${{ env.CONTAINER_NAME }} \
+            --label ${{ env.APP_IMAGE }} \
+            --image ${{ env.APP_IMAGE }}:latest
+
+      - name: Push Web Docker Image
+        working-directory: ./docker/
+        run: |
+          aws lightsail push-container-image \
+            --region ${{ env.AWS_REGION }} \
+            --service-name ${{ env.CONTAINER_NAME }} \
+            --label ${{ env.WEB_IMAGE }} \
+            --image ${{ env.WEB_IMAGE }}:latest
+
+      - name: Push DB Docker Image
+        working-directory: ./docker/
+        run: |
+          aws lightsail push-container-image \
+            --region ${{ env.AWS_REGION }} \
+            --service-name ${{ env.CONTAINER_NAME }} \
+            --label ${{ env.DB_IMAGE }} \
+            --image ${{ env.DB_IMAGE }}:latest
+
+      - name: Build AWS Lightsail Container
+        working-directory: ./awscli/
+        run: |
+          aws lightsail create-container-service-deployment \
+            --service-name ${{ env.CONTAINER_NAME }} \
+            --cli-input-json file://./container.json

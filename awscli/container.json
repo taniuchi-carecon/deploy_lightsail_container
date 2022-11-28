@@ -1,0 +1,46 @@
+{
+  "containers": {
+    "app": {
+      "image": ":container-service-1.service-name-app.latest",
+      "environment": {
+        "APP_ENV": "release",
+        "NODE_ENV": "production"
+      },
+      "ports": {
+        "9000": "TCP"
+      }
+    },
+    "web": {
+      "image": ":container-service-1.service-name-web.latest",
+      "environment": {
+        "APP_ENV": "release",
+        "NODE_ENV": "production"
+      },
+      "ports": {
+        "80": "HTTP"
+      }
+    },
+    "db": {
+      "image": ":container-service-1.service-name-db.latest",
+      "environment": {
+        "APP_ENV": "release",
+        "NODE_ENV": "production"
+      },
+      "ports": {
+        "3306": "TCP"
+      }
+    }
+  },
+  "publicEndpoint": {
+    "containerName": "web",
+    "containerPort": 80,
+    "healthCheck": {
+      "healthyThreshold": 2,
+      "unhealthyThreshold": 2,
+      "timeoutSeconds": 5,
+      "intervalSeconds": 300,
+      "path": "/",
+      "successCodes": "200-499"
+    }
+  }
+}
