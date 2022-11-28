@@ -1,15 +1,9 @@
 name: execute_terraform
 
-# 手動実行(workflow_dispatch)で引数を取る形にしている
+# 手動実行(workflow_dispatch)で引数を取る形にしている。自動実行にするならsecretsに情報を設定する。
 on:
   workflow_dispatch:
     inputs:
-      TF_VERSION:
-        type: string
-        required: true
-      TF_WORK_DIR:
-        type: string
-        required: true
       AWS_ACCOUNT_ID:
         type: string
         required: true
@@ -39,22 +33,22 @@ jobs:
       - name: setup terraform
         uses: hashicorp/setup-terraform@v1
         with:
-          terraform_version: ${{ inputs.TF_VERSION }}
+          terraform_version: "1.3.2"
 
       - name: terraform init
         id: init
-        working-directory: ${{ inputs.TF_WORK_DIR }}
+        working-directory: ./terraform/
         run: |
           terraform init
 
       - name: terraform plan
         id: plan
-        working-directory: ${{ inputs.TF_WORK_DIR }}
+        working-directory: ./terraform/
         run: |
           terraform plan -no-color
 
       - name: terraform apply
         id: apply
-        working-directory: ${{ inputs.TF_WORK_DIR }}
+        working-directory: ./terraform/
         run: |
           terraform apply -auto-approve
