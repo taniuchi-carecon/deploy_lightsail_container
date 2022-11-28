@@ -13,7 +13,7 @@ provider "awslightsail" {
 }
 
 # lightsail containerを作成
-resource "aws_lightsail_container_service" "codestrategy_work" {
+resource "aws_lightsail_container_service" "my_container" {
   name        = "container-service-1"
   power       = "micro"
   scale       = 1
