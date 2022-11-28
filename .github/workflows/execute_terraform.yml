@@ -1,0 +1,60 @@
+name: execute_terraform
+
+# 手動実行(workflow_dispatch)で引数を取る形にしている
+on:
+  workflow_dispatch:
+    inputs:
+      TF_VERSION:
+        type: string
+        required: true
+      TF_WORK_DIR:
+        type: string
+        required: true
+      AWS_ACCOUNT_ID:
+        type: string
+        required: true
+      AWS_ACCOUNT_ROLE:
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  create_ligtsail_container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: branch checkout
+        uses: actions/checkout@v2
+
+      # OIDC実行
+      - name: AWS OIDC certification
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.AWS_ACCOUNT_ID }}:role/${{ inputs.AWS_ACCOUNT_ROLE }}
+          aws-region: ap-northeast-1
+
+      # 下記、terraform関連の処理
+      - name: setup terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ inputs.TF_VERSION }}
+
+      - name: terraform init
+        id: init
+        working-directory: ${{ inputs.TF_WORK_DIR }}
+        run: |
+          terraform init
+
+      - name: terraform plan
+        id: plan
+        working-directory: ${{ inputs.TF_WORK_DIR }}
+        run: |
+          terraform plan -no-color
+
+      - name: terraform apply
+        id: apply
+        working-directory: ${{ inputs.TF_WORK_DIR }}
+        run: |
+          terraform apply -auto-approve
